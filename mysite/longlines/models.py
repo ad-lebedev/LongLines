@@ -31,7 +31,7 @@ class task_task_list(models.Model):
 class learning_group(models.Model):
     name = models.CharField(max_length=10)
     date_started = models.DateField()
-    task_list = models.ForeignKey(task, on_delete=models.CASCADE)
+    task_list = models.ForeignKey(task_list, on_delete=models.CASCADE)
     tutor = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
