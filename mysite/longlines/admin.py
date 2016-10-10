@@ -3,7 +3,7 @@ from .models import LearningGroup
 
 
 class LearningGroupAdmin(admin.ModelAdmin):
-    fields = ('name', 'date_started')
-    list_display = ('name', 'tutor', 'date_started')
+    filter_horizontal = ['students']
+    list_filter = ['students']
 
 admin.site.register(LearningGroup, LearningGroupAdmin)

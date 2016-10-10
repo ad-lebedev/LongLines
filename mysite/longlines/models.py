@@ -40,23 +40,26 @@ class TaskTaskList(models.Model):
 class LearningGroup(models.Model):
     name = models.CharField(max_length=10)
     date_started = models.DateField()
-    task_list = models.ForeignKey(TaskList, on_delete=models.CASCADE)
+    task_list = models.ForeignKey(TaskList, on_delete=models.DO_NOTHING, blank="True")
     tutor = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='tutors',
         related_query_name='tutor',
         limit_choices_to={'is_active': True})
-    student = models.ManyToManyField(
+    students = models.ManyToManyField(
         User,
         through='LearningGroupMembers',
-        through_fields=('group', 'student')
+        blank="True"
     )
 
 
 class LearningGroupMembers(models.Model):
-    group = models.ForeignKey(LearningGroup, on_delete=models.CASCADE)
+    group = models.ForeignKey(LearningGroup, on_delete=models.DO_NOTHING)
     student = models.OneToOneField(User, on_delete=models.CASCADE, unique=True)
+
+    class Meta:
+        auto_created = LearningGroup
 
 
 class TaskProgress(models.Model):
