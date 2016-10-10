@@ -70,7 +70,7 @@ class TaskProgress(models.Model):
 
 
 class Parameters(models.Model):
-    diargam_choices = (
+    circuit_diargam_choices = (
         (1, 'Open circuit'),
         (2, 'Short circuit'),
         (3, 'Resistance'),
@@ -83,17 +83,17 @@ class Parameters(models.Model):
     )
     task = models.ForeignKey(TaskProgress, on_delete=models.CASCADE)
     date_published = models.DateTimeField()
-    circuit_diagram_type = models.PositiveSmallIntegerField(choices=diargam_choices)
+    circuit_diagram_type = models.PositiveSmallIntegerField(choices=circuit_diargam_choices)
     R_gen = models.PositiveSmallIntegerField()
     U_gen = models.PositiveSmallIntegerField(default=1000)
-    T_gen = models.PositiveSmallIntegerField('pulse time')
-    L_line = models.PositiveSmallIntegerField('length')
-    X_line = models.PositiveSmallIntegerField('position')
+    T_gen = models.PositiveSmallIntegerField(verbose_name='pulse time')
+    L_line = models.PositiveSmallIntegerField(verbose_name='length')
+    X_line = models.PositiveSmallIntegerField(verbose_name='position')
     T_line = models.PositiveSmallIntegerField()
     Ro_line = models.PositiveSmallIntegerField()
     R_load = models.PositiveSmallIntegerField()
     L_load = models.PositiveSmallIntegerField()
     C_load = models.PositiveSmallIntegerField()
-    T_delay_osc = models.PositiveSmallIntegerField('delay')
-    T_sweep_osc = models.PositiveSmallIntegerField('sweep')
+    T_delay_osc = models.PositiveSmallIntegerField(verbose_name='delay')
+    T_sweep_osc = models.PositiveSmallIntegerField(verbose_name='sweep')
     comment = models.CharField(max_length=500)
