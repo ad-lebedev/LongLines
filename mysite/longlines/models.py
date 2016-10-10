@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -40,26 +42,38 @@ class TaskTaskList(models.Model):
 class LearningGroup(models.Model):
     name = models.CharField(max_length=10)
     date_started = models.DateField()
-    task_list = models.ForeignKey(TaskList, on_delete=models.DO_NOTHING, blank="True")
+    task_list = models.ForeignKey(TaskList, on_delete=models.DO_NOTHING, blank=True, null=True)
     tutor = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
         related_name='tutors',
         related_query_name='tutor',
         limit_choices_to={'is_active': True})
+
+    def limit_students_from_users():
+        return {'groups__name__contains': 'students'}
+
     students = models.ManyToManyField(
         User,
-        through='LearningGroupMembers',
-        blank="True"
-    )
+        related_name='students',
+        limit_choices_to=limit_students_from_users)
 
+    def is_active(self):
 
-class LearningGroupMembers(models.Model):
-    group = models.ForeignKey(LearningGroup, on_delete=models.DO_NOTHING)
-    student = models.OneToOneField(User, on_delete=models.CASCADE, unique=True)
+        now_date = datetime.date.today()
+        now_month = now_date.month
+        if now_month <= 6:
+            active_year = now_date.year - 1
+        else:
+            active_year = now_date.year
+        now_date = now_date.replace(year=active_year, month=9, day=1)
+        return self.date_started >= now_date
+    is_active.admin_order_field = 'date_started'
+    is_active.boolean = True
+    is_active.short_description = 'Is active?'
 
-    class Meta:
-        auto_created = LearningGroup
+    def __str__(self):
+        return self.name
 
 
 class TaskProgress(models.Model):
