@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 
 class ModelAudit(models.Model):
-    author = models.PositiveSmallIntegerField()
+    author = models.CharField(max_length=50)
     name = models.CharField(max_length=100)
 
     class Meta:
@@ -17,6 +17,10 @@ class ModelAudit(models.Model):
 class Task(ModelAudit):
     number = models.PositiveSmallIntegerField()
     description = models.CharField(max_length=1000)
+
+    class Meta:
+        verbose_name = 'task'
+        verbose_name_plural = 'tasks'
 
 
 class TaskList(ModelAudit):
