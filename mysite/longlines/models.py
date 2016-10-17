@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 class ModelAudit(models.Model):
     author = models.CharField(max_length=50)
     name = models.CharField(max_length=100)
+    description = models.CharField(max_length=1000, default='')
 
     class Meta:
         abstract = True
@@ -15,14 +16,25 @@ class ModelAudit(models.Model):
     def created_by_user(self):
         return User.objects.get(username=self.author)
 
+    @created_by_user.setter
+    def created_by_user(self, user):
+        self.author = user.username
+
 
 class Task(ModelAudit):
-    number = models.PositiveSmallIntegerField()
-    description = models.CharField(max_length=1000)
+    number = models.PositiveSmallIntegerField(blank=True)
+
+    def save(self):
+        if self._state.adding:
+            self.number = Task.objects.filter(author=self.author).count() + 1
+            super(Task, self).save()
 
     class Meta:
-        verbose_name = 'task'
-        verbose_name_plural = 'tasks'
+        verbose_name = 'Task'
+        verbose_name_plural = 'Tasks'
+
+    def __str__(self):
+        return self.name
 
 
 class TaskList(ModelAudit):
@@ -43,12 +55,16 @@ class LearningGroup(models.Model):
     name = models.CharField(max_length=10)
     date_started = models.DateField()
     task_list = models.ForeignKey(TaskList, on_delete=models.DO_NOTHING, blank=True, null=True)
+
+    def limit_tutors_from_users():
+        return {'groups__name__contains': 'tutors'}
+
     tutor = models.ForeignKey(
         User,
         on_delete=models.DO_NOTHING,
         related_name='tutors',
         related_query_name='tutor',
-        limit_choices_to={'is_active': True})
+        limit_choices_to=limit_tutors_from_users)
 
     def limit_students_from_users():
         return {'groups__name__contains': 'students'}
@@ -78,10 +94,10 @@ class LearningGroup(models.Model):
 
 class TaskProgress(models.Model):
     status_choices = (
-        (1, 'New'),
-        (2, 'Sent to check'),
-        (3, 'Passed'),
-        (4, 'Declined')
+        (1, 'Новая'),
+        (2, 'Ожидает проверки'),
+        (3, 'Выполнено'),
+        (4, 'Отклонено')
     )
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     student = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -92,15 +108,15 @@ class TaskProgress(models.Model):
 
 class Parameters(models.Model):
     circuit_diargam_choices = (
-        (1, 'Open circuit'),
-        (2, 'Short circuit'),
-        (3, 'Resistance'),
-        (4, 'Capacitance'),
-        (5, 'Parallel res/cap'),
-        (6, 'Series res/cap'),
-        (7, 'Inductance'),
-        (8, 'Parallel res/ind'),
-        (9, 'Series res/ind'),
+        (1, 'Холостой ход'),
+        (2, 'Короткое замыкание'),
+        (3, 'Резистивная нагрузка'),
+        (4, 'Емкостная нагрузка'),
+        (5, 'Параллельное соединение резистор/конденсатор'),
+        (6, 'Последовательное соединение резистор/конденсатор'),
+        (7, 'Индуктивная нагрузка'),
+        (8, 'Параллельное соединение резистор/катушка'),
+        (9, 'Последовательное соединение резистор/катушка'),
     )
     task = models.ForeignKey(TaskProgress, on_delete=models.CASCADE)
     date_published = models.DateTimeField()

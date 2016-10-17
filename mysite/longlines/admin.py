@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import LearningGroup, TaskList
-# from django import forms
+from .models import LearningGroup, TaskList, Task
+from django import forms
 # from django.contrib.auth.models import User
 # from django.db.models import Q
 
@@ -19,14 +19,42 @@ from .models import LearningGroup, TaskList
 class LearningGroupAdmin(admin.ModelAdmin):
     # form = LearningGroupAdminForm
     filter_horizontal = ['students']
-    list_filter = ['date_started', 'tutor']
+    list_filter = ['tutor']
     list_display = ('name', 'tutor', 'date_started', 'is_active')
+
+
+class TaskAdminFrom(forms.ModelForm):
+    description = forms.CharField(widget=forms.Textarea)
+
+    class Meta:
+        model = Task
+        fields = ['name', 'description']
+
+
+class TaskAdmin(admin.ModelAdmin):
+    form = TaskAdminFrom
+
+    list_filter = ['name', 'author']
+    list_display = ('number', 'name', 'author')
+    ordering = ('author', 'number')
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.author = request.user.username
+        obj.save()
 
 
 class TaskListAdmin(admin.ModelAdmin):
     filter_horizontal = ['tasks']
-    list_filter = ['tasks']
+    # list_filter = ['tasks']
+    fields = ['name']
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.author = request.user.username
+        obj.save()
 
 
 admin.site.register(TaskList, TaskListAdmin)
 admin.site.register(LearningGroup, LearningGroupAdmin)
+admin.site.register(Task, TaskAdmin)
