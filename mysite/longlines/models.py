@@ -40,42 +40,42 @@ class Task(ModelAudit):
 class TaskList(ModelAudit):
     tasks = models.ManyToManyField(
         Task,
-        through='TaskTaskList',
-        through_fields=('task_list', 'task')
+        related_name='task_lists',
+        related_query_name='task_list',
+        # Как определить limit_choises_to для этого случая?
+        # Нужно ограничить выбор только задачами, созданными
+        # тем же пользователем, который создает данный тасклист.
     )
 
 
-class TaskTaskList(models.Model):
-    task_list = models.ForeignKey(TaskList, on_delete=models.CASCADE)
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    task_number = models.PositiveSmallIntegerField()
+def limit_students_from_users():
+    return {'learning_group_student__name__isnull': True,
+            'is_active': True,
+            'groups__name__contains': 'students'}
 
 
 class LearningGroup(models.Model):
-    name = models.CharField(max_length=10)
+    name = models.CharField(max_length=50)
     date_started = models.DateField()
     task_list = models.ForeignKey(TaskList, on_delete=models.DO_NOTHING, blank=True, null=True)
 
-    def limit_tutors_from_users():
-        return {'groups__name__contains': 'tutors'}
-
     tutor = models.ForeignKey(
         User,
-        on_delete=models.DO_NOTHING,
-        related_name='tutors',
-        related_query_name='tutor',
-        limit_choices_to=limit_tutors_from_users)
-
-    def limit_students_from_users():
-        return {'groups__name__contains': 'students'}
+        related_name='learning_group_tutors',
+        related_query_name='learning_group_tutor',
+        limit_choices_to={'groups__name__contains': 'tutors'}
+    )
 
     students = models.ManyToManyField(
         User,
-        related_name='students',
-        limit_choices_to=limit_students_from_users)
+        related_name='learning_group_students',
+        related_query_name='learning_group_student',
+        # При таком фильтре, как указан ниже, уже указанные в других группах студенты не только
+        # не попадают в список доступных, но и не отображаются в списке уже выбранных...
+        limit_choices_to=limit_students_from_users
+    )
 
     def is_active(self):
-
         now_date = datetime.date.today()
         now_month = now_date.month
         if now_month <= 6:
@@ -100,10 +100,14 @@ class TaskProgress(models.Model):
         (4, 'Отклонено')
     )
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
     task_status = models.PositiveSmallIntegerField(verbose_name='status', choices=status_choices)
     created_date = models.DateTimeField()
     changed_date = models.DateTimeField()
+    student = models.ForeignKey(
+        User,
+        on_delete=models.DO_NOTHING,
+        related_name='task_progress_student',
+    )
 
 
 class Parameters(models.Model):

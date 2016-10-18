@@ -1,29 +1,19 @@
 from django.contrib import admin
 from .models import LearningGroup, TaskList, Task
 from django import forms
-# from django.contrib.auth.models import User
-# from django.db.models import Q
 
 
-# class LearningGroupAdminForm(forms.ModelForm):
-#     class Meta:
-#         model = LearningGroup
-#
-#     def __init__(self, *args, **kwargs):
-#         super(LearningGroupAdminForm, self).__init__(*args, **kwargs)
-#         if 'students' in self.initial:
-#             self.fields['students'].queryset = User.objects.filter(Q(is_active=True))
-#             self.fields['students'].queryset = User.objects.filter(Q(Active=True) | Q(group__=date.today()))
+class AdminAudit(admin.ModelAdmin):
+    class Meta:
+        abstract = True
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.author = request.user.username
+        obj.save()
 
 
-class LearningGroupAdmin(admin.ModelAdmin):
-    # form = LearningGroupAdminForm
-    filter_horizontal = ['students']
-    list_filter = ['tutor']
-    list_display = ('name', 'tutor', 'date_started', 'is_active')
-
-
-class TaskAdminFrom(forms.ModelForm):
+class AdminForm(forms.ModelForm):
     description = forms.CharField(widget=forms.Textarea)
 
     class Meta:
@@ -31,28 +21,25 @@ class TaskAdminFrom(forms.ModelForm):
         fields = ['name', 'description']
 
 
-class TaskAdmin(admin.ModelAdmin):
-    form = TaskAdminFrom
+class LearningGroupAdmin(admin.ModelAdmin):
+    filter_horizontal = ['students']
+    list_filter = ['tutor']
+    list_display = ('name', 'tutor', 'date_started', 'is_active')
 
-    list_filter = ['name', 'author']
+
+class TaskAdmin(AdminAudit):
+    form = AdminForm
     list_display = ('number', 'name', 'author')
+    list_filter = ['author']
     ordering = ('author', 'number')
 
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.author = request.user.username
-        obj.save()
 
-
-class TaskListAdmin(admin.ModelAdmin):
+class TaskListAdmin(AdminAudit):
+    list_display = ('name', 'author')
+    list_filter = ['author']
+    ordering = ('author',)
+    fields = ('name', 'description', 'tasks')
     filter_horizontal = ['tasks']
-    # list_filter = ['tasks']
-    fields = ['name']
-
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.author = request.user.username
-        obj.save()
 
 
 admin.site.register(TaskList, TaskListAdmin)
