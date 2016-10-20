@@ -47,6 +47,9 @@ class TaskList(ModelAudit):
         # тем же пользователем, который создает данный тасклист.
     )
 
+    def __str__(self):
+        return self.name
+
 
 def limit_students_from_users():
     return {'learning_group_student__name__isnull': True,
@@ -55,10 +58,13 @@ def limit_students_from_users():
 
 
 class LearningGroup(models.Model):
+    # Главный вопрос: как при сохранении учебной группы, когда ей назначает преподаватель ТаскЛист,
+    # делать записи в таблице TaskProgress, для всех студентов из этой группы, со стасом Новая
     name = models.CharField(max_length=50)
     date_started = models.DateField()
+    # Преподаватель должен указывать ссылку на задание для группы. Но в списке доступных должен видеть только свое.
     task_list = models.ForeignKey(TaskList, on_delete=models.DO_NOTHING, blank=True, null=True)
-
+    # группы назначаются преподавателю, и преподаватель должен иметь возможность назначать конкретной группе задание (тасклист).
     tutor = models.ForeignKey(
         User,
         related_name='learning_group_tutors',
@@ -72,6 +78,8 @@ class LearningGroup(models.Model):
         related_query_name='learning_group_student',
         # При таком фильтре, как указан ниже, уже указанные в других группах студенты не только
         # не попадают в список доступных, но и не отображаются в списке уже выбранных...
+        # Есть ли возможность ограничить список выбора студентов для группы только не указанными ни в одной группе,
+        # но принадлежащие Auth группе, содержащей имя Студенты
         limit_choices_to=limit_students_from_users
     )
 
@@ -91,6 +99,21 @@ class LearningGroup(models.Model):
     def __str__(self):
         return self.name
 
+    # Какая-то ерунда. Объект еще не записан. А как сделать метод после записи?
+    # def save(self):
+    #     if self._state.adding:
+    #         qs = self.students.all()
+    #         qt = self.task_list.tasks.objects.all()
+    #         for student in qs:
+    #             for task in qt:
+    #                 tp = TaskProgress(
+    #                     status_choices=1,
+    #                     task=task,
+    #                     student=student
+    #                 )
+    #                 tp.save()
+    #     super(LearningGroup, self).save()
+
 
 class TaskProgress(models.Model):
     status_choices = (
@@ -108,6 +131,14 @@ class TaskProgress(models.Model):
         on_delete=models.DO_NOTHING,
         related_name='task_progress_student',
     )
+
+    def save(self):
+        if self._state.adding:
+            self.created_date = datetime.datetime.now()
+            super(TaskProgress, self).save()
+        else:
+            self.changed_date = datetime.datetime.now()
+            super(TaskProgress, self).save()
 
 
 class Parameters(models.Model):
