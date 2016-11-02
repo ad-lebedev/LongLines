@@ -14,7 +14,14 @@ class ModelAudit(models.Model):
 
     @property
     def created_by_user(self):
-        return User.objects.get(username=self.author)
+        try:
+            user = User.objects.get(username=self.username)
+        except User.DoesNotExists:
+            user = None
+        except User.MultipleObjectsReturned:
+            user = User.objects.filter(username=self.username).first()
+        finally:
+            return user
 
     @created_by_user.setter
     def created_by_user(self, user):
@@ -27,7 +34,7 @@ class Task(ModelAudit):
     def save(self):
         if self._state.adding:
             self.number = Task.objects.filter(author=self.author).count() + 1
-            super(Task, self).save()
+        super(Task, self).save()
 
     class Meta:
         verbose_name = 'Task'
@@ -44,15 +51,25 @@ class TaskList(ModelAudit):
         related_query_name='task_list',
         # Как определить limit_choises_to для этого случая?
         # Нужно ограничить выбор только задачами, созданными
-        # тем же пользователем, который создает данный тасклист.
+        # тем же пользователем, который создает данный тасклист. - на уровне формы. модельная форма, атрибут модел, указываем модель
+        # дальше отпределяем свойства полей формы. formfield model selection multiple
     )
 
     def __str__(self):
         return self.name
 
+    def save(self):
+        super(TaskList, self).save()
+        qt = TaskList.objects.get(pk=self.pk).tasks.all()
+        qg = LearningGroup.objects.filter(task_list_id=self.pk)
+        if qt.count() != 0 and qg.count != 0:
+            print(qt.count())
+            print(qg.count())
+
 
 def limit_students_from_users():
-    return {'learning_group_student__name__isnull': True,
+    return {
+            # 'learning_group_student__name__isnull': True,
             'is_active': True,
             'groups__name__contains': 'students'}
 
@@ -60,9 +77,19 @@ def limit_students_from_users():
 class LearningGroup(models.Model):
     # Главный вопрос: как при сохранении учебной группы, когда ей назначает преподаватель ТаскЛист,
     # делать записи в таблице TaskProgress, для всех студентов из этой группы, со стасом Новая
+    # метод save - был ли назначен тасклист ил был изменен
+    # if not self._state.adding and (
+    #         self.creator_id != self._loaded_values['creator_id']):
+    #     raise ValueError("Updating the value of creator isn't allowed")
+    # super(...).save(*args, **kwargs)
+    # https://docs.djangoproject.com/en/1.10/ref/models/instances/#customizing-model-loading
+    # создание таск прогресса - на уровне таск листа. метод можем вызвать после сохранения учебной группы.
+    # один метод - по списку сдудентов создает таск прогрессы
+    # второй - получает после сохранения список студентов и вызывает первый метод
+
     name = models.CharField(max_length=50)
     date_started = models.DateField()
-    # Преподаватель должен указывать ссылку на задание для группы. Но в списке доступных должен видеть только свое.
+    # Преподаватель должен указывать ссылку на задание для группы. Но в списке доступных должен видеть только свое. - на уровне view
     task_list = models.ForeignKey(TaskList, on_delete=models.DO_NOTHING, blank=True, null=True)
     # группы назначаются преподавателю, и преподаватель должен иметь возможность назначать конкретной группе задание (тасклист).
     tutor = models.ForeignKey(
@@ -99,20 +126,9 @@ class LearningGroup(models.Model):
     def __str__(self):
         return self.name
 
-    # Какая-то ерунда. Объект еще не записан. А как сделать метод после записи?
     # def save(self):
-    #     if self._state.adding:
-    #         qs = self.students.all()
-    #         qt = self.task_list.tasks.objects.all()
-    #         for student in qs:
-    #             for task in qt:
-    #                 tp = TaskProgress(
-    #                     status_choices=1,
-    #                     task=task,
-    #                     student=student
-    #                 )
-    #                 tp.save()
     #     super(LearningGroup, self).save()
+    #     TaskList.create_task_progress(self.task_list, self.students.all())
 
 
 class TaskProgress(models.Model):
@@ -124,21 +140,13 @@ class TaskProgress(models.Model):
     )
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     task_status = models.PositiveSmallIntegerField(verbose_name='status', choices=status_choices)
-    created_date = models.DateTimeField()
-    changed_date = models.DateTimeField()
+    created_date = models.DateTimeField().auto_now_add
+    changed_date = models.DateTimeField().auto_now
     student = models.ForeignKey(
         User,
         on_delete=models.DO_NOTHING,
         related_name='task_progress_student',
     )
-
-    def save(self):
-        if self._state.adding:
-            self.created_date = datetime.datetime.now()
-            super(TaskProgress, self).save()
-        else:
-            self.changed_date = datetime.datetime.now()
-            super(TaskProgress, self).save()
 
 
 class Parameters(models.Model):
