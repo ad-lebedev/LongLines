@@ -4,7 +4,23 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-class ModelAudit(models.Model):
+class ModelGeneral(models.Model):
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        if cls._deferred:
+            instance = cls(**zip(field_names, values))
+        else:
+            instance = cls(*values)
+        instance._state.adding = False
+        instance._state.db = db
+        instance._loaded_values = dict(zip(field_names, values))
+        return instance
+
+    class Meta:
+        abstract = True
+
+
+class ModelAudit(ModelGeneral):
     author = models.CharField(max_length=50)
     name = models.CharField(max_length=100)
     description = models.CharField(max_length=1000, default='')
@@ -31,10 +47,12 @@ class ModelAudit(models.Model):
 class Task(ModelAudit):
     number = models.PositiveSmallIntegerField(blank=True)
 
-    def save(self):
+    def save(self, *args, **kwargs):
         if self._state.adding:
             self.number = Task.objects.filter(author=self.author).count() + 1
-        super(Task, self).save()
+        # print(self.name)
+        # print(self._loaded_values['name'])
+        super(Task, self).save(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Task'
@@ -58,13 +76,18 @@ class TaskList(ModelAudit):
     def __str__(self):
         return self.name
 
-    def save(self):
-        super(TaskList, self).save()
-        qt = TaskList.objects.get(pk=self.pk).tasks.all()
-        qg = LearningGroup.objects.filter(task_list_id=self.pk)
-        if qt.count() != 0 and qg.count != 0:
-            print(qt.count())
-            print(qg.count())
+    # def save(self):
+    #     super(TaskList, self).save()
+    #
+    #
+    # def get_students(self):
+    #     qt = TaskList.objects.get(pk=self.pk).tasks.all()
+    #     qg = LearningGroup.objects.filter(task_list_id=self.pk)
+    #     if qt.count() != 0 and qg.count != 0:
+    #         print(qt.count())
+    #         print(qg.count())
+
+    # def create_task_progress(self):
 
 
 def limit_students_from_users():
@@ -126,12 +149,13 @@ class LearningGroup(models.Model):
     def __str__(self):
         return self.name
 
-    # def save(self):
-    #     super(LearningGroup, self).save()
-    #     TaskList.create_task_progress(self.task_list, self.students.all())
+    def save(self):
+        super(LearningGroup, self).save()
+        print(self.task_list is None)
+        print(User.objects.filter(learning_group_student__id=self.pk))
 
 
-class TaskProgress(models.Model):
+class TaskProgress(ModelGeneral):
     status_choices = (
         (1, 'Новая'),
         (2, 'Ожидает проверки'),
@@ -147,6 +171,12 @@ class TaskProgress(models.Model):
         on_delete=models.DO_NOTHING,
         related_name='task_progress_student',
     )
+
+    def save(self):
+        if not self._state.adding and (
+                    self.task_status == self._loaded_values['task_status']):
+            raise ValueError('You can not update record in task progress table with the same task status')
+        super(TaskProgress, self).save()
 
 
 class Parameters(models.Model):
