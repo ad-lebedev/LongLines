@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
 from django.contrib import admin
-from .models import LearningGroup, TaskList, Task
+from django.contrib.admin.decorators import register
 from django import forms
+
+from .models import LearningGroup, TaskList, Task, TaskProgress
 
 
 class AdminAudit(admin.ModelAdmin):
@@ -21,12 +24,14 @@ class AdminForm(forms.ModelForm):
         fields = ['name', 'description']
 
 
+@register(LearningGroup)
 class LearningGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ['students']
     list_filter = ['tutor']
     list_display = ('name', 'tutor', 'date_started', 'is_active')
 
 
+@register(Task)
 class TaskAdmin(AdminAudit):
     form = AdminForm
     list_display = ('number', 'name', 'author')
@@ -34,6 +39,7 @@ class TaskAdmin(AdminAudit):
     ordering = ('author', 'number')
 
 
+@register(TaskList)
 class TaskListAdmin(AdminAudit):
     list_display = ('name', 'author')
     list_filter = ['author']
@@ -42,6 +48,7 @@ class TaskListAdmin(AdminAudit):
     filter_horizontal = ['tasks']
 
 
-admin.site.register(TaskList, TaskListAdmin)
-admin.site.register(LearningGroup, LearningGroupAdmin)
-admin.site.register(Task, TaskAdmin)
+@register(TaskProgress)
+class TaskProgressAdmin(admin.ModelAdmin):
+    list_display = ('task', 'student', 'task_status', 'created_date', 'changed_date')
+    list_filter = ['task', 'student', 'task_status']
