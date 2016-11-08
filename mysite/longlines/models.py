@@ -4,6 +4,8 @@ import datetime
 from collections import defaultdict
 
 from django.db import models
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
 from django.contrib.auth.models import User
 from django.utils import six
 
@@ -59,8 +61,6 @@ class Task(ModelAudit):
     def save(self, *args, **kwargs):
         if self._state.adding:
             self.number = Task.objects.filter(author=self.author).count() + 1
-        # print(self.name)
-        # print(self._loaded_values['name'])
         super(Task, self).save(*args, **kwargs)
 
     class Meta:
@@ -85,17 +85,6 @@ class TaskList(ModelAudit):
     def __str__(self):
         return self.name
 
-    # def save(self, *args, **kwargs):
-    #     super(TaskList, self).save(*args, **kwargs)
-    #
-    #
-    # def get_students(self):
-    #     qt = TaskList.objects.get(pk=self.pk).tasks.all()
-    #     qg = LearningGroup.objects.filter(task_list_id=self.pk)
-    #     if qt.count() != 0 and qg.count != 0:
-    #         print(qt.count())
-    #         print(qg.count())
-
     def create_task_progresses(self, students):
         """
         Creates TaskProgress objects for given list of students
@@ -111,15 +100,19 @@ class TaskList(ModelAudit):
 
             students_with_task_progresses_assigned = defaultdict(list)
             students_with_task_progresses_for_creation = defaultdict(list)
+            students_with_task_progresses_for_removal = defaultdict(list)
 
             # Gets lists for tasks from current task list without progresses for each student
+            # Also gets lists of tasks with progresses that should be removed
             if existing_progresses:
                 for progress in existing_progresses:
                     students_with_task_progresses_assigned[progress.student_id].append(progress.task_id)
 
                 for student, tasks_assigned in six.iteritems(students_with_task_progresses_assigned):
                     task_ids_without_progress = list(set(task_ids) - set(tasks_assigned))
+                    task_ids_with_progress_for_removal = list(set(tasks_assigned)-set(task_ids))
                     students_with_task_progresses_for_creation[student] = task_ids_without_progress
+                    students_with_task_progresses_for_removal[student] = task_ids_with_progress_for_removal
 
             # Appends student with all tasks from tasks list if there is no progresses for him at all
             for s in students:
@@ -133,11 +126,36 @@ class TaskList(ModelAudit):
                         student_id=s
                     ))
 
+            for s, tasks_with_progresses_for_removal in six.iteritems(students_with_task_progresses_for_removal):
+                for t in tasks_with_progresses_for_removal:
+                    TaskProgress.objects.filter(
+                        task_id=t,
+                        student_id=s
+                    ).delete()
+
             if task_progresses:
                 TaskProgress.objects.bulk_create(task_progresses)
+
         else:
             raise ValueError('`create_task_progresses` method accepts only list of student but {} given'.
                              format(type(students)))
+
+    def get_students_list(self):
+        """
+        Gets students list from all learning groups
+        which contain task list
+        :return: list of students
+        """
+        students_list = []
+        groups = LearningGroup.objects.filter(task_list_id=self.pk)
+
+        if groups:
+            for group in groups:
+                students = group.students.all()
+                for s in students:
+                    students_list.append(s)
+        print(students_list)
+        return students_list
 
 
 def limit_students_from_users():
@@ -203,11 +221,6 @@ class LearningGroup(models.Model):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        super(LearningGroup, self).save(*args, **kwargs)
-        print(self.task_list is None)
-        print(User.objects.filter(learning_group_student__id=self.pk))
-
 
 class TaskProgress(ModelGeneral):
     status_choices = (
@@ -236,11 +249,11 @@ class TaskProgress(ModelGeneral):
         verbose_name = 'Task progress'
         verbose_name_plural = 'Task progresses'
 
-    def save(self, *args, **kwargs):
-        if not self._state.adding and (
-                    self.task_status == self._loaded_values['task_status']):
-            raise ValueError('You can not update record in task progress table with the same task status')
-        super(TaskProgress, self).save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if not self._state.adding and (
+    #                 self.task_status == self._loaded_values['task_status']):
+    #         raise ValueError('You can not update record in task progress table with the same task status')
+    #     super(TaskProgress, self).save(*args, **kwargs)
 
 
 class Parameters(models.Model):
@@ -281,3 +294,21 @@ class Parameters(models.Model):
         verbose_name='sweep')
     comment = models.CharField(
         max_length=500)
+
+
+@receiver(m2m_changed, sender=LearningGroup.students.through)
+def add_progress(sender, **kwargs):
+    instance = kwargs.pop('instance', None)
+    if instance.task_list_id is not None and instance.students:
+        print("Signal 1 received")
+        print(list(instance.students.all()))
+        instance.task_list.create_task_progresses(list(instance.students.all()))
+
+
+@receiver(m2m_changed, sender=TaskList.tasks.through)
+def add_progress_from_task_list(sender, **kwargs):
+    instance = kwargs.pop('instance', None)
+    students_list = instance.get_students_list()
+    print("Signal 2 received")
+    if students_list:
+        instance.create_task_progresses(list(students_list))

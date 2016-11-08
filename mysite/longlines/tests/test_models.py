@@ -50,3 +50,7 @@ class LongLinesModelTestCase(TestCase):
 
         self.task_list.create_task_progresses(self.students)
         self.assertEqual(TaskProgress.objects.count(), 6)
+
+    def test_get_students_list_method(self):
+        students_list = list(self.task_list.get_students_list())
+        self.assertEqual(isinstance(students_list, list), True)
