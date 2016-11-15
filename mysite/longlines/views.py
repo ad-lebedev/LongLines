@@ -1,5 +1,6 @@
-from django.http import HttpResponse
+from django.views.generic import ListView
+from . import models
 
-def index(request):
-    return HttpResponse("Hello, world. You're at the Long lines index.")
-# Create your views here.
+
+class ListOfTasks(ListView):
+    model = models.Task
