@@ -1,0 +1,58 @@
+// long-lines.less
+// by ffs @ 07 Dec 2016
+
+// colors
+@main-color: #F5833C;
+
+#user-login-info {
+	position: relative;
+	height: 50px;
+	line-height: 50px;
+	font-size: 15px;
+	float: right;
+	color: @main-color;
+}
+
+a {
+	color: @main-color;
+	&:hover {
+		color: darken(@main-color, 5%);
+	}
+}
+
+
+// bootstrap overwriters
+
+.navbar {
+	border-radius: 0;
+	background-color: #404043;
+
+	.navbar-brand {
+		padding: 0 15px 0 0;
+		line-height: 50px;
+		// color: #FFF;
+	}
+
+	&.navbar-inverse .navbar-nav>li {
+		&>a {
+			color: #fafafa;
+		}
+		&>a:hover {
+			background-color: #222;
+		}
+		&.active>a {
+			color: @main-color;
+		}
+	}
+
+}
+
+.footer {
+	background-color: #eee;
+	.text-muted {
+		color: lighten(@main-color, 10%);
+	}
+}
+
+
+// end of bootstrap overwriters
