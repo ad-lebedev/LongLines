@@ -9,7 +9,7 @@
     <meta name="author" content="">
     <link rel="icon" href="ui_img/logo2.png">
 
-    <title>Long Lines page title</title>
+    <title>Журнал учета заданий</title>
 
     <!-- Bootstrap core CSS -->
     <link href="lib/bootstrap/bootstrap.min.css" rel="stylesheet">
@@ -51,8 +51,8 @@
           <ul class="nav navbar-nav">
             <li><a href="#">Учебные группы</a></li>
             <li><a href="#">Задания</a></li>
-            <li class="active"><a href="#">Задачи</a></li>
-            <li><a href="#">Журнал учета</a></li>
+            <li><a href="#">Задачи</a></li>
+            <li class="active"><a href="#">Журнал учета</a></li>
           </ul>
           <div id="user-login-info">
             <i class="fa fa-user"></i>&nbsp;
@@ -65,30 +65,21 @@
 
     <!-- Begin page content -->
     <div class="container">
-      <div class="col-md-8">
-        <form class="form-horizontal">
-          <div class="form-group">
-            <label class="col-sm-2 control-label">Наименование</label>
-            <div class="col-sm-10">
-              <input class="form-control" type="text" id="formGroupInputSmall" placeholder="Наименование задачи">
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="col-sm-2 control-label">Описание</label>
-            <div class="col-sm-10">
-              <textarea class="form-control" rows="10" placeholder="Описание. &#10;Ссылки на материалы. &#10;Требования к выполнению."></textarea>
-            </div>
-          </div>
-          <div class="form-group">
-            <div class="col-sm-offset-2 col-sm-10">
-              <p>
-                <input class="btn btn-success" type="submit" value="Создать">
-                <input class="btn btn-danger" type="submit" value="Отмена">
-              </p>
-            </div>
-          </div>
-        </form>
-      </div>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Студент</th>
+            <th>Группа</th>
+            <th>Задача</th>
+            <th>Статус</th>
+            <th>Дата обновления</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <footer class="footer">
