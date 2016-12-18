@@ -19,10 +19,17 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
-urlpatterns = [
-    url(r'^longlines/', include('longlines.urls')),
+from . import views
+
+urlpatterns = patterns(
+    '',
+    url(r'^', include('longlines.urls')),
+    url(r'^login/$', views.login, {'template_name': 'login.html'},
+        name='login-view'),
+    url(r'^logout/$', views.user_logout,
+        name='logout-view'),
     url(r'^admin/', admin.site.urls),
-]
+)
 
 # Serving static files during development
 if settings.DEBUG:

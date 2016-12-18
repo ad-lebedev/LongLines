@@ -1,6 +1,7 @@
 Django==1.9.11
 django-debug-toolbar==1.6
 Faker==0.7.3
+future==0.16.0
 mixer==5.5.8
 python-dateutil==2.5.3
 pytz==2016.7
