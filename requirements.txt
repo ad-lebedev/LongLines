@@ -1,0 +1,8 @@
+Django==1.9.11
+django-debug-toolbar==1.6
+Faker==0.7.3
+mixer==5.5.8
+python-dateutil==2.5.3
+pytz==2016.7
+six==1.10.0
+sqlparse==0.2.2
